@@ -1,4 +1,6 @@
-import { ApolloClient, gql, InMemoryCache } from '@apollo/client';
+import { gql } from '@apollo/client';
+import Link from 'next/link';
+import { client } from '../lib/apollo';
 
 export default function Home({ posts }) {
   return (
@@ -9,8 +11,12 @@ export default function Home({ posts }) {
         </h1>
         <div className="mt-5 space-y-2">
           {posts.map((post) => {
-            const { id, title } = post.node;
-            return <h2 key={id}>{title}</h2>;
+            const { id, slug, title } = post;
+            return (
+              <Link key={id} href={`/posts/${slug}`}>
+                <a className="block">{title}</a>
+              </Link>
+            );
           })}
         </div>
       </div>
@@ -19,29 +25,23 @@ export default function Home({ posts }) {
 }
 
 export const getStaticProps = async () => {
-  const client = new ApolloClient({
-    uri: 'http://wptest.local/graphql',
-    cache: new InMemoryCache(),
-  });
-
-  const response = await client.query({
-    query: gql`
-      query MyQuery {
-        posts {
-          edges {
-            node {
-              id
-              title
-              content
-              slug
-            }
-          }
+  const GET_POSTS = gql`
+    query AllPostsQuery {
+      posts {
+        nodes {
+          id
+          slug
+          title
         }
       }
-    `,
+    }
+  `;
+
+  const response = await client.query({
+    query: GET_POSTS,
   });
 
-  const posts = response.data.posts.edges;
+  const posts = response?.data?.posts?.nodes;
 
   return {
     props: {
